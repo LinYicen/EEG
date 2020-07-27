@@ -1,0 +1,160 @@
+import inline as inline
+import matplotlib
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import time
+
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import LinearSVC
+from sklearn.model_selection import cross_val_score, train_test_split #训练集，测试集分类
+from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
+
+import xgboost as xgb
+
+import warnings
+warnings.filterwarnings('ignore')
+
+import os
+os.listdir('F:\PYCHARM')
+
+brainwave_df = pd.read_csv('F:\PYCHARM\emotions.csv')
+
+brainwave_df.head()
+brainwave_df.tail()
+brainwave_df.shape
+brainwave_df.dtypes
+brainwave_df.describe()
+
+
+plt.figure(figsize=(12,5))
+sns.countplot(x=brainwave_df.label, color='mediumseagreen')
+plt.title('Emotional sentiment class distribution', fontsize=16)
+plt.ylabel('Class Counts', fontsize=16)
+plt.xlabel('Class Label', fontsize=16)
+plt.xticks(rotation='vertical');
+
+label_df = brainwave_df['label']
+brainwave_df.drop('label', axis = 1, inplace=True)
+
+correlations = brainwave_df.corr(method='pearson')
+#correlations
+
+skew = brainwave_df.skew()
+skew
+start= time.time()
+pl_random_forest = Pipeline(steps=[('random_forest', RandomForestClassifier(
+n_estimators=90
+,max_depth=30
+,criterion=entropy))])
+scores = cross_val_score(pl_random_forest, brainwave_df, label_df, cv=10,scoring='accuracy')
+print('Accuracy for RandomForest : ', scores.mean())
+end=time.time()
+print(end-start)
+
+
+from sklearn.metrics import confusion_matrix
+
+labels = ['positive', 'negative', 'neutron']
+
+
+y_true = label_df
+y_pred = pl_xgb.fit(brainwave_df, label_df).predict(brainwave_df)
+print(y_pred)
+print(y_true)
+tick_marks = np.array(range(len(labels))) + 0.5
+
+def plot_confusion_matrix(cm, title='Confusion Matrix', cmap=plt.cm.binary):
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    xlocations = np.array(range(len(labels)))
+    plt.xticks(xlocations, labels, rotation=90)
+    plt.yticks(xlocations, labels)
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
+
+cm = confusion_matrix(y_true, y_pred)
+np.set_printoptions(precision=2)
+cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+print (cm_normalized)
+plt.figure(figsize=(12, 8), dpi=120)
+
+ind_array = np.arange(len(labels))
+x, y = np.meshgrid(ind_array, ind_array)
+
+for x_val, y_val in zip(x.flatten(), y.flatten()):
+    c = cm_normalized[y_val][x_val]
+    if c > 0.01:
+        plt.text(x_val, y_val, "%0.2f" % (c,), color='red', fontsize=7, va='center', ha='center')
+# offset the tick
+plt.gca().set_xticks(tick_marks, minor=True)
+plt.gca().set_yticks(tick_marks, minor=True)
+plt.gca().xaxis.set_ticks_position('none')
+plt.gca().yaxis.set_ticks_position('none')
+plt.grid(True, which='minor', linestyle='-')
+plt.gcf().subplots_adjust(bottom=0.15)
+
+plot_confusion_matrix(cm_normalized, title='Normalized confusion matrix of XGBoost ')
+# show confusion matrix
+
+plt.show()
+
+
+"'XG Boost
+
+pl_xgb = Pipeline(steps=
+                  [('xgboost', xgb.XGBClassifier(objective='multi:softmax'))])
+scores = cross_val_score(pl_xgb, brainwave_df, label_df, cv=10)
+print('Accuracy for XGBoost Classifier : ', scores.mean())
+"'
+
+"'Logistic Regression Classifie
+
+pl_log_reg = Pipeline(steps=[('scaler',StandardScaler()),
+                             ('log_reg', LogisticRegression(multi_class='multinomial', solver='saga', max_iter=200))])
+scores = cross_val_score(pl_log_reg, brainwave_df, label_df, cv=10,scoring='accuracy')
+print('Accuracy for Logistic Regression: ', scores.mean())
+"'
+
+"'Principal Component Analysis (PCA)
+
+scaler = StandardScaler()
+scaled_df = scaler.fit_transform(brainwave_df)
+pca = PCA(n_components = 20)
+pca_vectors = pca.fit_transform(scaled_df)
+for index, var in enumerate(pca.explained_variance_ratio_):
+    print("Explained Variance ratio by Principal Component ", (index+1), " : ", var)
+plt.figure(figsize=(25,8))
+sns.scatterplot(x=pca_vectors[:, 0], y=pca_vectors[:, 1], hue=label_df)
+plt.title('Principal Components vs Class distribution', fontsize=16)
+plt.ylabel('Principal Component 2', fontsize=16)
+plt.xlabel('Principal Component 1', fontsize=16)
+plt.xticks(rotation='vertical');pl_log_reg_pca_10 = Pipeline(steps=[('scaler',StandardScaler()),
+                             ('pca', PCA(n_components = 10)),
+                             ('log_reg', LogisticRegression(multi_class='multinomial', solver='saga', max_iter=200))])
+scores = cross_val_score(pl_log_reg_pca_10, brainwave_df, label_df, cv=10,scoring='accuracy')
+print('Accuracy for Logistic Regression with 10 Principal Components: ', scores.mean())
+"'
+
+"'Artificial Neural Network Classifier (ANN)
+
+pl_mlp = Pipeline(steps=[('scaler',StandardScaler()),
+                             ('mlp_ann', MLPClassifier(hidden_layer_sizes=(1275, 637)))])
+scores = cross_val_score(pl_mlp, brainwave_df, label_df, cv=10,scoring='accuracy')
+print('Accuracy for ANN : ', scores.mean())
+"'
+
+"'Linear Support Vector Machines Classifier
+
+pl_svm = Pipeline(steps=[('scaler',StandardScaler()),
+                             ('pl_svm', LinearSVC())])
+scores = cross_val_score(pl_svm, brainwave_df, label_df, cv=10,scoring='accuracy')
+print('Accuracy for Linear SVM : ', scores.mean())
+"'
